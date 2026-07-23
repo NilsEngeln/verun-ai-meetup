@@ -35,11 +35,12 @@ type Agent = {
   id: AgentId;
   name: string;
   role: string;
+  family: "Hermes" | "OpenClaw";
   runtime: string;
   surface: string;
   output: string;
   connection: string;
-  status: "Live" | "External live";
+  status: "Live";
   icon: LucideIcon;
   tone: string;
 };
@@ -50,7 +51,7 @@ const scenes: Array<{ id: SceneId; label: string; short: string }> = [
   { id: "request", label: "One request", short: "03" },
   { id: "kanban", label: "Work ledger", short: "04" },
   { id: "brain", label: "Shared brain", short: "05" },
-  { id: "principles", label: "Human control", short: "06" },
+  { id: "principles", label: "Human in the loop", short: "06" },
 ];
 
 const agents: Agent[] = [
@@ -58,6 +59,7 @@ const agents: Agent[] = [
     id: "moneypenny",
     name: "Moneypenny",
     role: "Knowledge and operations",
+    family: "Hermes",
     runtime: "Hermes",
     surface: "Slack",
     output: "Wiki pages, research tasks, reflections and board updates",
@@ -70,10 +72,11 @@ const agents: Agent[] = [
     id: "vesper",
     name: "Vesper",
     role: "Marketing intelligence",
-    runtime: "Dedicated service",
+    family: "Hermes",
+    runtime: "Dedicated service with Hermes drafting",
     surface: "Slack",
     output: "X digests, dossiers, source-backed drafts and revisions",
-    connection: "Runs as a standalone Slack agent; external publishing always stays human-controlled.",
+    connection: "Runs as a standalone Slack agent; drafts and narrative support stay internal until a human publishes.",
     status: "Live",
     icon: Megaphone,
     tone: "coral",
@@ -82,9 +85,10 @@ const agents: Agent[] = [
     id: "q",
     name: "Q",
     role: "Guarded code execution",
+    family: "Hermes",
     runtime: "Hermes + Codex",
     surface: "Slack and Kanban",
-    output: "Scoped code changes, checks, local commits and review-ready draft PRs",
+    output: "Scoped code changes, checks, local commits and review handoffs",
     connection: "Works only in allowlisted repositories and isolated worktrees, then stops for human review.",
     status: "Live",
     icon: SquareTerminal,
@@ -94,11 +98,12 @@ const agents: Agent[] = [
     id: "atlas",
     name: "Atlas",
     role: "Technical execution",
+    family: "OpenClaw",
     runtime: "OpenClaw",
     surface: "Telegram",
     output: "Architecture validation, implementation plans, code and deployment checks",
     connection: "Live in Rafael's OpenClaw/Telegram setup; VERUN bridge registration is waiting on private network visibility.",
-    status: "External live",
+    status: "Live",
     icon: Code2,
     tone: "blue",
   },
@@ -106,25 +111,40 @@ const agents: Agent[] = [
     id: "kite",
     name: "Kite",
     role: "Research to artifact",
+    family: "OpenClaw",
     runtime: "OpenClaw",
     surface: "Telegram",
     output: "Market scans, specs, demo scopes and decision-ready artifacts",
     connection: "Live in Rafael's OpenClaw/Telegram setup; VERUN bridge registration is waiting on private network visibility.",
-    status: "External live",
+    status: "Live",
     icon: FileText,
     tone: "amber",
   },
 ];
 
 const requestSteps = [
-  { title: "Human brief", detail: "Update the AI meetup story", icon: Users },
-  { title: "Moneypenny", detail: "Finds current facts in the shared brain", icon: BookOpen },
-  { title: "Hermes card", detail: "Stores scope, repo, owner and review gate", icon: Layers3 },
-  { title: "Vesper", detail: "Shapes the source-backed narrative", icon: Megaphone },
-  { title: "Q worktree", detail: "Implements the change in an isolated branch", icon: SquareTerminal },
-  { title: "Checks + commit", detail: "Produces a review-ready local commit", icon: GitBranch },
-  { title: "Human review", detail: "Approves claims, code and publication", icon: ShieldCheck },
-  { title: "Shared record", detail: "Task evidence returns to Kanban and the wiki", icon: Brain },
+  { title: "Human brief", detail: "Meeting feedback defines scope and acceptance criteria", icon: Users },
+  { title: "Moneypenny context", detail: "Retrieves current facts and sources from the shared wiki", icon: BookOpen },
+  { title: "Hermes Kanban", detail: "Records the repository, owner, brief and review gate", icon: Layers3 },
+  { title: "Vesper narrative", detail: "Drafts and supports the story; never publishes it", icon: Megaphone },
+  { title: "Q implementation", detail: "Changes the site in an isolated q/* worktree", icon: SquareTerminal },
+  { title: "Q checks + commit", detail: "Runs type, build and visual checks, then commits locally", icon: GitBranch },
+  { title: "Human review + merge", detail: "Reviews claims and code, then controls the merge", icon: ShieldCheck },
+  { title: "Vercel deployment", detail: "Deploys the configured, human-approved production branch", icon: Waypoints },
+  { title: "Wiki write-back", detail: "Moneypenny writes accepted evidence back to the shared wiki", icon: Brain },
+];
+
+const agentGroups = [
+  {
+    family: "Hermes" as const,
+    label: "Hermes agents",
+    detail: "Knowledge, narrative support and guarded implementation",
+  },
+  {
+    family: "OpenClaw" as const,
+    label: "OpenClaw agents",
+    detail: "Technical validation and research-to-artifact work",
+  },
 ];
 
 const promptRoutes = [
@@ -179,7 +199,7 @@ function App() {
           {scene.label}
         </div>
 
-        <button className="nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-expanded={navOpen}>
+        <button className="nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-expanded={navOpen} aria-label="Chapters">
           <Layers3 size={18} />
           <span>Chapters</span>
         </button>
@@ -257,13 +277,10 @@ function OverviewScene({ goTo, inspect }: { goTo: (index: number) => void; inspe
 
   return (
     <div className="overview-scene">
-      <img className="overview-image" src="/verun-agentic-company.jpg" alt="VERUN agentic company operating system with specialist work zones around a shared knowledge core" />
-      <div className="overview-shade" />
-
       <div className="overview-copy">
         <div className="eyebrow"><Sparkles size={16} /> A working company operating system</div>
-        <h1>Humans set direction.<br />Agents move the work.</h1>
-        <p>VERUN is building an AI-native company in public: specialist agents, one shared task ledger, and a brain the whole team can inspect.</p>
+        <h1>Five agents.<br />One accountable team.</h1>
+        <p>Humans set direction. Named specialists retrieve context, draft narratives, implement changes and leave a visible record for review.</p>
 
         <form className="explore-prompt" onSubmit={submit}>
           <Search size={18} aria-hidden="true" />
@@ -281,21 +298,37 @@ function OverviewScene({ goTo, inspect }: { goTo: (index: number) => void; inspe
         </div>
       </div>
 
-      <div className="agent-hotspots" aria-label="Agent hotspots">
-        {agents.map((agent, index) => {
-          const Icon = agent.icon;
-          return (
-            <button key={agent.id} className={`hotspot hotspot-${index + 1}`} onClick={() => inspect(agent)}>
-              <span><Icon size={17} /></span>
-              <strong>{agent.name}</strong>
-              <small>{agent.role}</small>
-            </button>
-          );
-        })}
+      <div className="overview-agent-stage" aria-label="Five VERUN specialist agents grouped by runtime">
+        <header>
+          <span>Named specialists</span>
+          <strong>The agents are the operating system.</strong>
+        </header>
+        {agentGroups.map((group) => (
+          <section className={`overview-agent-group ${group.family.toLowerCase()}`} key={group.family}>
+            <div className="overview-group-heading">
+              <span>{group.label}</span>
+              <small>{group.detail}</small>
+            </div>
+            <div className="overview-agent-list">
+              {agents.filter((agent) => agent.family === group.family).map((agent) => {
+                const Icon = agent.icon;
+                return (
+                  <button key={agent.id} onClick={() => inspect(agent)}>
+                    <span><Icon size={19} /></span>
+                    <strong>{agent.name}</strong>
+                    <small>{agent.role}</small>
+                    <ChevronRight size={16} />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+        <footer><Layers3 size={17} /><span>Hermes Kanban records the work. Humans approve the outcome.</span></footer>
       </div>
 
       <button className="start-story" onClick={() => goTo(1)}>
-        Explore the operating system <ArrowRight size={18} />
+        Meet the specialists <ArrowRight size={18} />
       </button>
     </div>
   );
@@ -315,24 +348,32 @@ function SpecialistsScene({ inspect }: { inspect: (agent: Agent) => void }) {
       />
 
       <div className="specialist-layout">
-        <div className="agent-list" role="tablist" aria-label="Specialist agents">
-          {agents.map((agent) => {
-            const Icon = agent.icon;
-            return (
-              <button
-                key={agent.id}
-                role="tab"
-                aria-selected={active === agent.id}
-                className={`agent-row ${agent.tone} ${active === agent.id ? "active" : ""}`}
-                onClick={() => setActive(agent.id)}
-              >
-                <span className="agent-icon"><Icon size={22} /></span>
-                <span><strong>{agent.name}</strong><small>{agent.role}</small></span>
-                <span className={`status-pill ${agent.status === "Live" ? "live" : "pending"}`}>{agent.status}</span>
-                <ChevronRight size={17} />
-              </button>
-            );
-          })}
+        <div className="agent-list" role="tablist" aria-label="Specialist agents grouped by runtime">
+          {agentGroups.map((group) => (
+            <div className="agent-family" key={group.family}>
+              <div className="agent-family-heading">
+                <strong>{group.label}</strong>
+                <span>{group.detail}</span>
+              </div>
+              {agents.filter((agent) => agent.family === group.family).map((agent) => {
+                const Icon = agent.icon;
+                return (
+                  <button
+                    key={agent.id}
+                    role="tab"
+                    aria-selected={active === agent.id}
+                    className={`agent-row ${agent.tone} ${active === agent.id ? "active" : ""}`}
+                    onClick={() => setActive(agent.id)}
+                  >
+                    <span className="agent-icon"><Icon size={22} /></span>
+                    <span><strong>{agent.name}</strong><small>{agent.role}</small></span>
+                    <span className="status-pill live">{agent.status}</span>
+                    <ChevronRight size={17} />
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         <div className={`agent-detail ${current.tone}`} role="tabpanel">
@@ -351,7 +392,7 @@ function SpecialistsScene({ inspect }: { inspect: (agent: Agent) => void }) {
         </div>
       </div>
 
-      <div className="specialist-note"><Network size={19} /><span>Different runtimes, one operating model: explicit routing, shared memory, auditable handoffs.</span></div>
+      <div className="specialist-note"><Network size={19} /><span>Two runtime families, one operating model: explicit routing, shared memory and auditable handoffs.</span></div>
     </div>
   );
 }
@@ -384,13 +425,13 @@ function RequestScene() {
       <SceneIntro
         kicker="A request becomes a visible chain of work"
         title="No invisible magic. Every handoff has an owner."
-        body="Watch one meetup brief move through the company. The simulation mirrors the operating model without calling external services."
+        body="Watch the actual meetup-site workflow move from a human brief to a reviewed deployment and durable write-back. This simulation calls no external services."
       />
 
       <div className="request-demo">
         <div className="brief-panel">
           <span className="panel-label">Human brief</span>
-          <blockquote>“Update our AI meetup website with the latest live architecture.”</blockquote>
+          <blockquote>“Apply the 22 July feedback to our AI meetup website.”</blockquote>
           <button className="primary-action" onClick={run} disabled={running}>
             {running ? <RefreshCw size={18} className="spin" /> : <Play size={18} />}
             {running ? "Running handoffs" : activeStep >= requestSteps.length - 1 ? "Run again" : "Run the request"}
@@ -411,61 +452,59 @@ function RequestScene() {
         </div>
 
         <div className="activity-panel">
-          <div className="activity-head"><span>Run log</span><span className={running ? "pulse" : ""}>{running ? "Live" : "Ready"}</span></div>
+          <div className="activity-head"><span>Workflow simulation</span><span className={running ? "pulse" : ""}>{running ? "Playing" : "Ready"}</span></div>
           <div className="activity-body">
             {activeStep < 0 && <p>Start the request to reveal each handoff.</p>}
             {requestSteps.slice(0, activeStep + 1).map((step, index) => (
               <div key={step.title}><span>0{index + 1}</span><p><strong>{step.title}</strong>{step.detail}</p></div>
             ))}
           </div>
-          {activeStep === requestSteps.length - 1 && <div className="run-result"><Check size={18} /> Draft ready for human approval</div>}
+          {activeStep === requestSteps.length - 1 && <div className="run-result"><Check size={18} /> Approved work deployed and recorded</div>}
         </div>
       </div>
     </div>
   );
 }
 
-const boardLanes = ["Triage", "Ready", "In progress", "Review", "Done"];
+const snapshotLanes = ["Ready", "Running", "Blocked · review", "Done"];
 
 function KanbanScene() {
-  const [position, setPosition] = useState(1);
-  const [comments, setComments] = useState(0);
-
   return (
     <div className="content-scene kanban-scene">
       <SceneIntro
         kicker="Hermes Kanban is the shared work ledger"
-        title="The board coordinates humans and agents."
-        body="Tasks carry scope, owner, evidence and review gates. Agent work cannot quietly disappear into a chat thread."
+        title="A real card, shown as a dated snapshot."
+        body="This chapter shows the actual meetup-site implementation card as captured on 22 July 2026. It is explicitly not a live feed, and the interface never invents activity or comments."
       />
 
       <div className="board-toolbar">
-        <div><Layers3 size={19} /><span><strong>VERUN Agent Ops</strong>Shared task board</span></div>
-        <span className="orchestration"><CircleDot size={14} /> Orchestration: controlled</span>
+        <div><Layers3 size={19} /><span><strong>VERUN Agent Ops</strong>Task evidence snapshot</span></div>
+        <span className="snapshot-label"><CircleDot size={14} /> Captured 22 July 2026</span>
       </div>
 
-      <div className="kanban-board">
-        {boardLanes.map((lane, index) => (
-          <div className={`kanban-lane ${index === position ? "active" : ""}`} key={lane}>
-            <header><span>{lane}</span><small>{index === position ? 1 : 0}</small></header>
-            {index === position && (
-              <article className="task-card">
-                <div className="task-top"><span>P1</span><span>@q</span></div>
-                <h3>Update the AI meetup website</h3>
-                <p>Use current wiki facts, run checks, commit locally and stop for human review.</p>
-                <div className="task-meta"><MessageSquareText size={14} /> {comments} comments</div>
-              </article>
-            )}
-          </div>
-        ))}
+      <div className="kanban-board snapshot-board">
+        {snapshotLanes.map((lane) => {
+          const isCapturedState = lane === "Running";
+          return (
+            <div className={`kanban-lane ${isCapturedState ? "active" : ""}`} key={lane}>
+              <header><span>{lane}</span><small>{isCapturedState ? 1 : 0}</small></header>
+              {isCapturedState && (
+                <article className="task-card">
+                  <div className="task-top"><span>P80</span><span>@q-sol</span></div>
+                  <h3>Apply the 22 July meeting feedback</h3>
+                  <p>Repository: verun-ai-meetup. Verify wiki facts, run checks, commit locally and stop for human review.</p>
+                  <div className="task-meta"><Layers3 size={14} /> t_accf763c · running</div>
+                </article>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      <div className="board-actions">
-        <button onClick={() => setComments(comments + 1)}><MessageSquareText size={17} /> Add evidence</button>
-        <button className="primary-action" onClick={() => setPosition(Math.min(position + 1, boardLanes.length - 1))} disabled={position === boardLanes.length - 1}>
-          Advance with review <ArrowRight size={17} />
-        </button>
-        <button className="icon-action" onClick={() => { setPosition(1); setComments(0); }} aria-label="Reset board"><RefreshCw size={17} /></button>
+      <div className="snapshot-evidence" aria-label="Snapshot provenance">
+        <div><strong>Source</strong><span>Hermes Kanban card t_accf763c</span></div>
+        <div><strong>Captured state</strong><span>Running · assignee q-sol · priority 80</span></div>
+        <div><strong>Truth boundary</strong><span>Comments, review and completion exist only on the real card; this view does not simulate them.</span></div>
       </div>
     </div>
   );
@@ -476,12 +515,12 @@ function BrainScene() {
   const [searched, setSearched] = useState(true);
   const result = useMemo(() => {
     const lower = query.toLowerCase();
-    if (lower.includes("vesper") || lower.includes("marketing")) return "Vesper is live in Slack for X intelligence, dossiers and source-backed drafting. External publishing remains human-approved.";
-    if (lower.includes("q") || lower.includes("code") || lower.includes("coding")) return "Q is live in Slack and Hermes Kanban. It works in allowlisted repositories and isolated worktrees, runs checks, creates a local commit, and stops for human review before a guarded draft PR.";
+    if (lower.includes("vesper") || lower.includes("marketing")) return "Vesper is live in Slack for X intelligence, dossiers and source-backed drafting. Vesper supports narratives but never publishes externally; a human reviews and publishes.";
+    if (lower.includes("q") || lower.includes("code") || lower.includes("coding")) return "Q is live in Slack and Hermes Kanban. It works in allowlisted repositories and isolated worktrees, runs checks, creates a local commit, and stops for human review. A guarded draft PR requires a separate human request.";
     if (lower.includes("atlas") || lower.includes("kite") || lower.includes("openclaw")) return "Atlas and Kite are live in Rafael's OpenClaw/Telegram environment. The private VERUN brain bridge is deployed and healthy; cross-tailnet visibility and OpenClaw tool registration are still pending.";
     if (lower.includes("kanban") || lower.includes("task") || lower.includes("board")) return "Hermes Kanban is live as the durable work ledger. Moneypenny creates, assigns, comments on and completes cards directly from Slack, while Q uses cards as its guarded execution contract.";
     if (lower.includes("sync") || lower.includes("github") || lower.includes("obsidian")) return "The server wiki is canonical at runtime and mirrors to GitHub every 15 minutes. Team members open the GitHub checkout as an Obsidian vault.";
-    return "Moneypenny, Vesper, Q, Hermes Kanban and the shared wiki are live. Atlas and Kite are active external specialists; their private VERUN bridge is deployed but final network and OpenClaw wiring remains pending.";
+    return "Moneypenny, Vesper and Q are the Hermes agent group. Atlas and Kite are the OpenClaw agent group; their agents are live, while final VERUN bridge network visibility and tool registration remain pending.";
   }, [query]);
 
   const submit = (event: FormEvent) => { event.preventDefault(); setSearched(true); };
@@ -490,8 +529,8 @@ function BrainScene() {
     <div className="content-scene brain-scene">
       <SceneIntro
         kicker="One shared, inspectable memory"
-        title="The brain is a wiki, not a black box."
-        body="Sources enter through agents and humans, become linked Markdown, and mirror through GitHub into each teammate’s Obsidian."
+        title="The brain turns source material into reusable company context."
+        body="The server Markdown wiki is the canonical runtime memory. Humans and agents add source-backed pages, Moneypenny retrieves them for new work, and a 15-minute GitHub mirror makes the same linked context available in Obsidian. Kanban remains the source of truth for task status."
       />
 
       <div className="brain-layout">
@@ -509,15 +548,20 @@ function BrainScene() {
 
         <div className="brain-console">
           <div className="console-head"><Search size={18} /><span>Ask the company brain</span></div>
+          <div className="brain-facts">
+            <div><span>01</span><p><strong>Capture</strong>Raw sources stay preserved; accepted facts become linked Markdown pages.</p></div>
+            <div><span>02</span><p><strong>Retrieve</strong>Moneypenny answers from compiled pages and names the supporting sources.</p></div>
+            <div><span>03</span><p><strong>Distribute</strong>GitHub mirrors the runtime wiki every 15 minutes for team Obsidian vaults.</p></div>
+          </div>
           <form onSubmit={submit}>
             <input value={query} onChange={(event) => { setQuery(event.target.value); setSearched(false); }} aria-label="Ask the company brain" />
             <button type="submit" aria-label="Search the company brain"><ArrowRight size={18} /></button>
           </form>
           {searched && (
             <div className="brain-answer">
-              <span>Answer from current operating notes</span>
+              <span>Illustrative retrieval from verified operating notes</span>
               <p>{result}</p>
-              <div><FileText size={14} /> Sources: Agent handbook, architecture status, implementation plan</div>
+              <div><FileText size={14} /> Sources: Agent Architecture and Usage Manual, Marketing Intelligence Agent, OpenClaw Brain Bridge</div>
             </div>
           )}
           <div className="sync-chain"><span>Server wiki</span><GitBranch size={15} /><span>GitHub mirror</span><ArrowRight size={15} /><span>Obsidian</span></div>
@@ -528,30 +572,40 @@ function BrainScene() {
 }
 
 function PrinciplesScene({ goTo }: { goTo: (index: number) => void }) {
-  const live = ["Moneypenny and Vesper in Slack", "Q coding agent with guarded worktrees", "Hermes Kanban and Slack task controls", "Wiki, GitHub and Obsidian", "Private OpenClaw brain bridge"];
-  const next = ["Restore cross-tailnet visibility for Atlas and Kite", "Register bridge tools inside both OpenClaw runtimes", "Return external-agent results to Kanban automatically"];
+  const agentsPrepare = [
+    "Moneypenny retrieves source-backed company context",
+    "Vesper drafts and supports narratives without publishing",
+    "Q implements, checks and commits in an isolated worktree",
+    "Kanban preserves scope, evidence and the review state",
+  ];
+  const humansControl = [
+    "Claims and external publishing",
+    "Code review and merge",
+    "Vercel production deployment",
+    "Promotion into canonical company knowledge",
+  ];
 
   return (
     <div className="content-scene principles-scene">
       <div className="principles-copy">
-        <div className="eyebrow"><ShieldCheck size={16} /> The operating principle</div>
-        <h1>Autonomy for the work.<br />Accountability for the outcome.</h1>
-        <p>Agents can research, draft, route and execute. Humans approve public claims, publishing, merges, deployments and high-stakes decisions.</p>
+        <div className="eyebrow"><ShieldCheck size={16} /> Human in the loop</div>
+        <h1>Agents prepare the work.<br />Humans control the release.</h1>
+        <p>Autonomy is bounded by explicit review gates. Agents can retrieve, research, draft and implement; humans remain accountable for what is published, merged, deployed and promoted into durable company memory.</p>
       </div>
 
       <div className="status-bands">
         <section>
-          <header><span className="live-dot" /> Live today</header>
-          {live.map((item) => <div key={item}><Check size={17} />{item}</div>)}
+          <header><Bot size={17} /> Agents prepare</header>
+          {agentsPrepare.map((item) => <div key={item}><Check size={17} />{item}</div>)}
         </section>
         <section>
-          <header><Waypoints size={17} /> Building next</header>
-          {next.map((item, index) => <div key={item}><span>0{index + 1}</span>{item}</div>)}
+          <header><ShieldCheck size={17} /> Humans control</header>
+          {humansControl.map((item, index) => <div key={item}><span>0{index + 1}</span>{item}</div>)}
         </section>
       </div>
 
       <div className="closing-band">
-        <div><strong>This website is part of the experiment.</strong><span>A reliable, curated demo of the live operating model behind VERUN.</span></div>
+        <div><strong>This website is part of the operating model.</strong><span>A curated explanation of the system, grounded in the current wiki and released through human review.</span></div>
         <button className="primary-action" onClick={() => goTo(0)}><RefreshCw size={17} /> Explore again</button>
       </div>
     </div>
@@ -575,7 +629,7 @@ function AgentDrawer({ agent, close }: { agent: Agent; close: () => void }) {
       <aside className={`agent-drawer ${agent.tone}`} aria-modal="true" role="dialog" aria-labelledby="agent-drawer-title">
         <button className="drawer-close" onClick={close} aria-label="Close agent profile"><X size={19} /></button>
         <span className="drawer-icon"><Icon size={28} /></span>
-        <span className={`status-pill ${agent.status === "Live" ? "live" : "pending"}`}>{agent.status}</span>
+        <span className="status-pill live">{agent.status}</span>
         <h2 id="agent-drawer-title">{agent.name}</h2>
         <p>{agent.role}</p>
         <dl>
