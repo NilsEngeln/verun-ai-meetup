@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-type SceneId = "overview" | "specialists" | "request" | "kanban" | "brain" | "principles";
+type SceneId = "overview" | "team" | "verun" | "specialists" | "request" | "kanban" | "brain" | "principles";
 type AgentId = "moneypenny" | "vesper" | "q" | "atlas" | "kite";
 
 type Agent = {
@@ -47,11 +47,13 @@ type Agent = {
 
 const scenes: Array<{ id: SceneId; label: string; short: string }> = [
   { id: "overview", label: "Company OS", short: "01" },
-  { id: "specialists", label: "Specialists", short: "02" },
-  { id: "request", label: "One request", short: "03" },
-  { id: "kanban", label: "Work ledger", short: "04" },
-  { id: "brain", label: "Shared brain", short: "05" },
-  { id: "principles", label: "Human in the loop", short: "06" },
+  { id: "team", label: "Team", short: "02" },
+  { id: "verun", label: "VERUN", short: "03" },
+  { id: "specialists", label: "Specialists", short: "04" },
+  { id: "request", label: "One request", short: "05" },
+  { id: "kanban", label: "Work ledger", short: "06" },
+  { id: "brain", label: "Shared brain", short: "07" },
+  { id: "principles", label: "Human in the loop", short: "08" },
 ];
 
 const agents: Agent[] = [
@@ -148,10 +150,10 @@ const agentGroups = [
 ];
 
 const promptRoutes = [
-  { label: "Meet the agents", scene: 1 },
-  { label: "Run a request", scene: 2 },
-  { label: "See the shared brain", scene: 4 },
-];
+  { label: "Meet the team", scene: "team" },
+  { label: "See what VERUN is building", scene: "verun" },
+  { label: "Meet the agents", scene: "specialists" },
+] satisfies Array<{ label: string; scene: SceneId }>;
 
 function App() {
   const [sceneIndex, setSceneIndex] = useState(0);
@@ -171,6 +173,8 @@ function App() {
     });
   };
 
+  const goToScene = (id: SceneId) => goTo(scenes.findIndex((item) => item.id === id));
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -180,7 +184,7 @@ function App() {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       if (event.key === "ArrowRight") goTo(sceneIndex + 1);
       if (event.key === "ArrowLeft") goTo(sceneIndex - 1);
-      if (event.key === "Home") goTo(0);
+      if (event.key === "Home") goToScene("overview");
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -189,7 +193,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <button className="brand" onClick={() => goTo(0)} aria-label="Return to overview">
+        <button className="brand" onClick={() => goToScene("overview")} aria-label="Return to overview">
           <span className="brand-mark" aria-hidden="true"><Waypoints size={19} /></span>
           <span><strong>VERUN</strong><small>Agentic company explorer</small></span>
         </button>
@@ -226,12 +230,14 @@ function App() {
       </aside>
 
       <section className="scene-frame" key={scene.id}>
-        {scene.id === "overview" && <OverviewScene goTo={goTo} inspect={setSelectedAgent} />}
+        {scene.id === "overview" && <OverviewScene goTo={goToScene} inspect={setSelectedAgent} />}
+        {scene.id === "team" && <TeamScene />}
+        {scene.id === "verun" && <VerunScene />}
         {scene.id === "specialists" && <SpecialistsScene inspect={setSelectedAgent} />}
         {scene.id === "request" && <RequestScene />}
         {scene.id === "kanban" && <KanbanScene />}
         {scene.id === "brain" && <BrainScene />}
-        {scene.id === "principles" && <PrinciplesScene goTo={goTo} />}
+        {scene.id === "principles" && <PrinciplesScene goTo={goToScene} />}
       </section>
 
       <footer className="scene-controls">
@@ -258,16 +264,18 @@ function App() {
   );
 }
 
-function OverviewScene({ goTo, inspect }: { goTo: (index: number) => void; inspect: (agent: Agent) => void }) {
+function OverviewScene({ goTo, inspect }: { goTo: (id: SceneId) => void; inspect: (agent: Agent) => void }) {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState("");
 
   const routePrompt = (text: string) => {
     const lower = text.toLowerCase();
-    if (lower.includes("agent") || lower.includes("special")) goTo(1);
-    else if (lower.includes("request") || lower.includes("work") || lower.includes("run")) goTo(2);
-    else if (lower.includes("brain") || lower.includes("wiki") || lower.includes("memory")) goTo(4);
-    else setAnswer("Try asking about the agents, a request, or the shared brain.");
+    if (["team", "founder", "rafael", "nils"].some((term) => lower.includes(term))) goTo("team");
+    else if (["verun", "product", "gateway", "finance", "building"].some((term) => lower.includes(term))) goTo("verun");
+    else if (lower.includes("agent") || lower.includes("specialist")) goTo("specialists");
+    else if (["request", "work", "run"].some((term) => lower.includes(term))) goTo("request");
+    else if (["brain", "wiki", "memory"].some((term) => lower.includes(term))) goTo("brain");
+    else setAnswer("Try asking about the team, VERUN, the agents, a request, or the shared brain.");
   };
 
   const submit = (event: FormEvent) => {
@@ -327,9 +335,113 @@ function OverviewScene({ goTo, inspect }: { goTo: (index: number) => void; inspe
         <footer><Layers3 size={17} /><span>Hermes Kanban records the work. Humans approve the outcome.</span></footer>
       </div>
 
-      <button className="start-story" onClick={() => goTo(1)}>
-        Meet the specialists <ArrowRight size={18} />
+      <button className="start-story" onClick={() => goTo("team")}>
+        Meet the team <ArrowRight size={18} />
       </button>
+    </div>
+  );
+}
+
+function TeamScene() {
+  const founders = [
+    {
+      initials: "RS",
+      name: "Rafael Schultz",
+      role: "Co-Founder",
+      focus: "Payments, digital assets, venture capital, fundraising, and institutional partnerships.",
+    },
+    {
+      initials: "NE",
+      name: "Nils Engeln",
+      role: "Co-Founder · Product & Operations",
+      focus: "Product direction, agent infrastructure, operations, and agentic-finance architecture.",
+    },
+  ];
+
+  return (
+    <div className="content-scene team-scene">
+      <SceneIntro
+        kicker="Who we are"
+        title="Two founders. One AI-native operating model."
+        body="Rafael and Nils combine finance, venture, product, and operations experience. Around them, specialist agents research, draft, implement, and document work, while humans own strategy, external claims, and every irreversible decision."
+      />
+
+      <div className="team-profiles" aria-label="VERUN founders">
+        {founders.map((founder) => (
+          <article className="founder-profile" key={founder.name}>
+            <span className="founder-initials" aria-hidden="true">{founder.initials}</span>
+            <div>
+              <span className="founder-role">{founder.role}</span>
+              <h2>{founder.name}</h2>
+              <p>{founder.focus}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="team-relationship" aria-label="Team operating model">
+        <span><strong>2</strong> founders</span>
+        <ArrowRight size={18} aria-hidden="true" />
+        <span><strong>5</strong> named specialists</span>
+        <ArrowRight size={18} aria-hidden="true" />
+        <span>one shared brain and work ledger</span>
+      </div>
+
+      <div className="team-principle"><ShieldCheck size={20} /><strong>The agents expand capacity.</strong> The founders remain accountable.</div>
+    </div>
+  );
+}
+
+function VerunScene() {
+  const capabilities = [
+    "Discover and normalize",
+    "Match explicit mandates",
+    "Qualify and route",
+    "Prepare an auditable handoff",
+  ];
+
+  return (
+    <div className="content-scene verun-scene">
+      <SceneIntro
+        kicker="What we are building"
+        title="One permissioned gateway between AI agents and financial institutions."
+        body="VERUN is an Agent Service Provider for regulated finance. Its MCP/API gateway gives investor-side AI agents one read-only interface to discover and compare opportunities across banks, brokers, fund platforms, and tokenization platforms, check explicit mandate constraints, and prepare a provider-controlled handoff."
+      />
+
+      <div className="verun-layout">
+        <div className="verun-context">
+          <section>
+            <span>Why we are building it</span>
+            <p>AI agents are becoming a new interface, but financial products and workflows remain fragmented across provider portals, APIs, and compliance processes. Raw API access is not enough: requests need context, permission, qualification, routing, and an auditable handoff.</p>
+          </section>
+          <section>
+            <span>Outcome</span>
+            <p>VERUN makes financial platforms agent-ready without requiring every agent to integrate with every institution separately.</p>
+          </section>
+        </div>
+
+        <div className="gateway-diagram" aria-label="Investor-side AI agent connects through the VERUN MCP API gateway to financial platforms">
+          <div className="gateway-flow">
+            <div className="gateway-endpoint"><Bot size={24} /><span>Investor-side</span><strong>AI agent</strong></div>
+            <ArrowRight className="gateway-arrow" size={22} aria-hidden="true" />
+            <div className="gateway-core">
+              <span>Agent Service Provider</span>
+              <strong>VERUN</strong>
+              <small>MCP/API gateway</small>
+            </div>
+            <ArrowRight className="gateway-arrow" size={22} aria-hidden="true" />
+            <div className="gateway-endpoint gateway-providers"><Network size={24} /><span>Banks · Brokers</span><strong>Fund & tokenization platforms</strong></div>
+          </div>
+
+          <ol className="gateway-capabilities">
+            {capabilities.map((capability, index) => <li key={capability}><span>0{index + 1}</span>{capability}</li>)}
+          </ol>
+
+          <div className="gateway-boundary"><ShieldCheck size={18} /><strong>Today:</strong> Read-only · synthetic data · human/provider controlled</div>
+        </div>
+      </div>
+
+      <p className="verun-boundary-copy"><strong>Current boundary:</strong> No investment advice, KYC data, orders, payments, or autonomous execution. Final eligibility and execution remain with the provider and the human.</p>
     </div>
   );
 }
@@ -571,7 +683,7 @@ function BrainScene() {
   );
 }
 
-function PrinciplesScene({ goTo }: { goTo: (index: number) => void }) {
+function PrinciplesScene({ goTo }: { goTo: (id: SceneId) => void }) {
   const agentsPrepare = [
     "Moneypenny retrieves source-backed company context",
     "Vesper drafts and supports narratives without publishing",
@@ -606,7 +718,7 @@ function PrinciplesScene({ goTo }: { goTo: (index: number) => void }) {
 
       <div className="closing-band">
         <div><strong>This website is part of the operating model.</strong><span>A curated explanation of the system, grounded in the current wiki and released through human review.</span></div>
-        <button className="primary-action" onClick={() => goTo(0)}><RefreshCw size={17} /> Explore again</button>
+        <button className="primary-action" onClick={() => goTo("overview")}><RefreshCw size={17} /> Explore again</button>
       </div>
     </div>
   );
