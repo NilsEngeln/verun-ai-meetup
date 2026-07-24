@@ -61,7 +61,7 @@ Introduce the accountable humans before presenting their specialist agents. The 
 
 **Rafael Schultz**
 
-- Role: `Founder`
+- Role: `Co-Founder`
 - Focus: `Payments, digital assets, venture capital, fundraising, and institutional partnerships.`
 
 **Nils Engeln**
@@ -236,4 +236,3 @@ In the completion note, report:
 - checks run
 - screenshots or viewport results
 - any remaining factual or visual questions
-
