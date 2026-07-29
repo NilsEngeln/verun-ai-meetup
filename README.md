@@ -1,24 +1,26 @@
-# VERUN AI Meetup Explorer
+# Who Manages Our Agents?
 
-An interactive visual story for AI meetups showing how VERUN is building an agentic company.
+An interactive Claude Community Berlin show and tell about building a
+Claude-powered Head of Agents for a multi-agent team.
 
-The experience reflects the current team, product, and operating architecture:
+The talk is organized for a 20-minute slot:
 
-- Rafael Schultz and Nils Engeln are VERUN's human founders. They retain strategy, judgment, external claims, and every irreversible decision.
-- VERUN is an Agent Service Provider for regulated finance. Its current MCP/API gateway MVP provides read-only discovery, explicit mandate matching, qualification, routing, and provider-controlled handoff over synthetic opportunities.
-- The MVP does not provide investment advice, hold KYC data, place orders, move money, or execute autonomously.
-- Moneypenny, Vesper, and Q are the Hermes agent group for knowledge, narrative support, and guarded implementation.
-- Atlas and Kite are the OpenClaw agent group for technical validation and research-to-artifact work.
-- Vesper supports source-backed narratives but does not publish externally.
-- Hermes Kanban is the durable work ledger.
-- The VERUN Markdown wiki is the canonical runtime memory and mirrors through GitHub into the team's Obsidian vaults.
-- Atlas and Kite are live in Rafael's OpenClaw/Telegram environment while the final private VERUN bridge connection remains in progress.
+- `0:00-1:00` Introduction — Rafael
+- `1:00-3:00` Context — Rafael
+- `3:00-10:00` How we use Claude — Nils
+- `10:00-12:00` Rough parts — Nils
+- `12:00-17:00` Live example — Nils
+- `17:00-18:00` Takeaways — Rafael
+- `18:00-20:00` Q&A — Nils and Rafael
 
-The eight chapters are: Company OS, Team, VERUN, Specialists, One request, Work ledger, Shared brain, and Human in the loop. The Team chapter introduces the accountable founders before the specialist agents; the VERUN chapter explains the product, fragmented-provider problem, gateway capabilities, and current read-only boundary.
+The presentation focuses on Claude's model, prompt, context retrieval,
+tools, routing, permissions, and evidence requirements. It retains the
+multi-agent operating setup as context while removing the VERUN product
+pitch, company logos, fundraising material, and promotional claims.
 
-The “One request” chapter follows the meetup-site path from human brief through Moneypenny, Kanban, Vesper, Q implementation and checks, human review, Vercel deployment, and wiki write-back. The Work ledger chapter is a dated snapshot of real card `t_accf763c`, not a simulated live board.
-
-External publishing, merges, production deployment, and promotion into canonical company knowledge remain human-controlled.
+The live example must use a sanitized real task. If the live workflow is
+not ready, use a clearly dated recording rather than presenting the visual
+walkthrough as a live system.
 
 ## Local Development
 
