@@ -30,8 +30,10 @@ type SceneId =
   | "question"
   | "system"
   | "manager"
+  | "brain"
   | "under-hood"
-  | "prompt-patterns"
+  | "task-orchestration"
+  | "blocked-task"
   | "live-run"
   | "failures"
   | "takeaways"
@@ -55,8 +57,10 @@ const scenes: Scene[] = [
   { id: "question", label: "Introduction", timing: "0:00–1:00" },
   { id: "system", label: "Context", timing: "1:00–3:00" },
   { id: "manager", label: "Claude: role", timing: "3:00–5:00" },
-  { id: "under-hood", label: "Manager prompt", timing: "5:00–7:30" },
-  { id: "prompt-patterns", label: "Prompt patterns", timing: "7:30–10:00" },
+  { id: "brain", label: "Shared brain", timing: "5:00–6:00" },
+  { id: "under-hood", label: "Manager prompt", timing: "6:00–7:30" },
+  { id: "task-orchestration", label: "Task orchestration", timing: "7:30–9:00" },
+  { id: "blocked-task", label: "Blocked task", timing: "9:00–10:00" },
   { id: "failures", label: "Rough parts", timing: "10:00–12:00" },
   { id: "live-run", label: "Live example", timing: "12:00–17:00" },
   { id: "takeaways", label: "Takeaways", timing: "17:00–18:00" },
@@ -137,8 +141,10 @@ function App() {
         {scene.id === "question" && <QuestionScene goTo={() => goToScene("system")} />}
         {scene.id === "system" && <SystemScene />}
         {scene.id === "manager" && <ManagerScene />}
+        {scene.id === "brain" && <SharedBrainScene />}
         {scene.id === "under-hood" && <UnderHoodScene />}
-        {scene.id === "prompt-patterns" && <PromptPatternsScene />}
+        {scene.id === "task-orchestration" && <TaskOrchestrationScene />}
+        {scene.id === "blocked-task" && <BlockedTaskScene />}
         {scene.id === "failures" && <FailuresScene />}
         {scene.id === "live-run" && <LiveRunScene />}
         {scene.id === "takeaways" && <TakeawaysScene />}
@@ -185,72 +191,12 @@ function QuestionScene({ goTo }: { goTo: () => void }) {
 }
 
 function SystemScene() {
-  const humans = [
-    { name: "Nils", role: "Operations + product" },
-    { name: "Rafael", role: "Strategy + partnerships" },
-    { name: "Fahad", role: "Brand + communication" },
-    { name: "Karina", role: "Research + operations" },
-  ];
-
   return (
-    <div className="content-scene system-scene">
-      <SceneIntro title="One company. Two kinds of teammates." />
-
-      <div className="org-chart">
-        <section className="org-humans">
-          <header><Users size={19} /> Humans</header>
-          {humans.map((human) => (
-            <article key={human.name}>
-              <span>{human.name.slice(0, 1)}</span>
-              <div><strong>{human.name}</strong><small>{human.role}</small></div>
-            </article>
-          ))}
-          <div className="human-authority"><UserCheck size={17} /> approve · merge · deploy · publish</div>
-        </section>
-
-        <section className="org-manager">
-          <span className="claude-mark"><img src="/claude-logo.svg" alt="Claude" /></span>
-          <small>Head of Agents</small>
-          <h2>Claude</h2>
-          <p>Scope · sequence · evidence · escalation</p>
-          <div className="org-line" aria-hidden="true" />
-        </section>
-
-        <section className="org-agents">
-          <header><Brain size={19} /> Specialist agents</header>
-          <div>
-            {specialists.map((agent) => {
-              const Icon = agent.icon;
-              return (
-                <article key={agent.name}>
-                  <Icon size={17} />
-                  <span><strong>{agent.name}</strong><small>{agent.role}</small></span>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-
-        <aside className="org-tools">
-          <header><Wrench size={18} /> Tools</header>
-          <span>Slack</span>
-          <span>Markdown wiki</span>
-          <span>Hermes Kanban</span>
-          <span>GitHub</span>
-          <span>Checks + worktrees</span>
-        </aside>
-      </div>
-
-      <div className="org-proof">
-        <figure>
-          <img src="/slack-moneypenny-repository-update.png" alt="Slack thread showing Moneypenny updating and ingesting repository operating context" />
-        </figure>
-        <div>
-          <span>Real operating surface</span>
-          <strong>Humans talk in Slack.</strong>
-          <p>Agents turn decisions into durable wiki and task state.</p>
-        </div>
-      </div>
+    <div className="context-graphic-scene">
+      <img
+        src="/slide-02-agent-architecture.png"
+        alt="VERUN operating model: Nils Engeln and Rafael Schultz direct Claude-powered Head of Agents M, which coordinates Moneypenny, Q, Vesper, Kite, Atlas and Dagobert across the company toolchain."
+      />
     </div>
   );
 }
@@ -339,36 +285,119 @@ or mark your own work complete.`}</pre>
   );
 }
 
-function PromptPatternsScene() {
+function SharedBrainScene() {
   return (
-    <div className="content-scene prompt-patterns-scene">
-      <SceneIntro title="Prompts 2 + 3 — Evidence beats confidence." />
+    <div className="content-scene brain-scene">
+      <SceneIntro title="The manager does not remember everything. The brain does." />
 
-      <div className="pattern-grid">
-        <article className="bad-pattern">
-          <span><TriangleAlert size={17} /> What failed</span>
-          <blockquote>“Coordinate the agents and let me know when everything is done.”</blockquote>
-          <footer>Result: hidden decisions, false completion signals, no review boundary.</footer>
-        </article>
-        <article className="good-pattern">
-          <span><FileCheck2 size={17} /> Prompt 2 · Evidence gate</span>
-          <blockquote>“Do not mark a task complete without the required checks, artifact link, commit SHA and named human review gate.”</blockquote>
-          <footer>Result: “done” becomes a claim that can be audited.</footer>
-        </article>
-        <article className="good-pattern">
-          <span><Waypoints size={17} /> Prompt 3 · Revision state</span>
-          <blockquote>“Treat replies in this thread as revisions to the active task. Preserve its ID, artifact and prior evidence.”</blockquote>
-          <footer>Result: feedback changes the work instead of starting a new conversation.</footer>
-        </article>
+      <div className="brain-layout">
+        <figure className="brain-graph">
+          <img src="/obsidian-shared-brain-graph.png" alt="Obsidian graph view of the shared VERUN Markdown knowledge base" />
+          <figcaption>Obsidian graph · linked Markdown knowledge</figcaption>
+        </figure>
+
+        <section className="brain-contract">
+          <span><Brain size={17} /> Shared LLM wiki</span>
+          <h2>Durable memory outside every agent.</h2>
+          <div className="brain-facts">
+            <p><strong>Canonical</strong>Markdown pages for decisions, meetings, architecture and tasks.</p>
+            <p><strong>Auditable</strong>GitHub mirrors the server wiki every 15 minutes.</p>
+            <p><strong>Human-readable</strong>The same graph opens locally in Obsidian.</p>
+          </div>
+          <div className="retrieval-contract">
+            <small>Context contract</small>
+            <ol>
+              <li>Search by task intent</li>
+              <li>Return a small evidence bundle</li>
+              <li>Cite source paths and freshness</li>
+              <li>Block when evidence is missing</li>
+            </ol>
+          </div>
+        </section>
       </div>
 
-      <div className="prompt-takeaway">
-        <div><strong>Copy the pattern</strong><span>Scope → evidence → authority → escalation</span></div>
-        <a href="https://github.com/NilsEngeln/verun-agent-workflows" target="_blank" rel="noreferrer">
-          <img src="/prompts-and-notes-qr.png" alt="QR code linking to prompts and implementation notes" />
-          <span>Prompts + implementation notes</span>
-          <ArrowRight size={16} />
-        </a>
+      <div className="brain-pipeline">
+        <span>Human request</span><ArrowRight size={16} />
+        <strong>wiki.search</strong><ArrowRight size={16} />
+        <span>Retrieved pages</span><ArrowRight size={16} />
+        <strong>Claude plan</strong><ArrowRight size={16} />
+        <span>Work ledger</span>
+      </div>
+    </div>
+  );
+}
+
+function TaskOrchestrationScene() {
+  return (
+    <div className="content-scene orchestration-scene">
+      <SceneIntro title="Prompt 2 — Delegate an outcome, not a conversation." />
+
+      <div className="orchestration-layout">
+        <section className="prompt-card orchestration-prompt">
+          <header><Waypoints size={18} /> Task orchestration prompt</header>
+          <pre>{`Create a Vesper campaign:
+“Claude Meetup Coverage”
+
+Collect links, notes and images posted
+in this thread through Friday.
+
+Deliver:
+- one source-backed LinkedIn recap draft
+- a visible task owner and deadline
+- the dossier path and acceptance criteria
+- a human review gate before publishing`}</pre>
+        </section>
+
+        <figure className="orchestration-proof">
+          <img src="/slack-m-task-orchestration.png" alt="Slack thread where Claude manager M creates a campaign task, assigns Vesper and records a deadline" />
+          <figcaption>Real handoff: M → task ledger → Vesper</figcaption>
+        </figure>
+      </div>
+
+      <div className="orchestration-result">
+        <span><strong>1</strong> Task created</span>
+        <ArrowRight size={15} />
+        <span><strong>2</strong> Vesper assigned</span>
+        <ArrowRight size={15} />
+        <span><strong>3</strong> Dossier opened</span>
+        <ArrowRight size={15} />
+        <span><strong>4</strong> Deadline revised in place</span>
+      </div>
+    </div>
+  );
+}
+
+function BlockedTaskScene() {
+  return (
+    <div className="content-scene blocked-task-scene">
+      <SceneIntro title="Prompt 3 — Block visibly when evidence is missing." />
+
+      <div className="blocked-task-layout">
+        <section className="prompt-card blocked-prompt">
+          <header><TriangleAlert size={18} /> Blocker prompt</header>
+          <pre>{`Before execution, verify:
+- the required brief exists
+- the repository is approved
+- permissions are available
+- acceptance criteria are testable
+
+If anything is missing:
+1. stop
+2. mark the task blocked
+3. name the exact missing input
+4. preserve the task ID and worktree
+5. resume only after human revision`}</pre>
+        </section>
+
+        <figure className="blocked-proof">
+          <img src="/slack-q-context-blocker.png" alt="Slack thread showing Q stopping on a missing brief and resuming the same task after human revision" />
+          <figcaption>Real blocker: missing brief → explicit request → same task resumed</figcaption>
+        </figure>
+      </div>
+
+      <div className="blocked-result">
+        <ShieldCheck size={18} />
+        <span><strong>No invented context.</strong> No abandoned work. One auditable task.</span>
       </div>
     </div>
   );
@@ -402,28 +431,42 @@ function LiveRunScene() {
 }
 
 function FailuresScene() {
+  const roughParts = [
+    {
+      issue: "Missing context",
+      symptom: "The agent began without the required brief.",
+      guardrail: "Preflight retrieval and an explicit blocker state.",
+    },
+    {
+      issue: "False completion",
+      symptom: "“Done” arrived without checks or an artifact.",
+      guardrail: "Evidence contract: checks, link, commit and review gate.",
+    },
+    {
+      issue: "Permission failure",
+      symptom: "A valid change could not be published from the worker.",
+      guardrail: "Allowlisted repositories and human-controlled authority.",
+    },
+  ];
+
   return (
     <div className="content-scene failures-scene">
-      <SceneIntro title="A blocker is better than a bluff." />
+      <SceneIntro title="The rough parts shaped the operating model." />
 
-      <div className="failure-proof-layout">
-        <div className="failure-story">
-          <span className="failure-label">What happened</span>
-          <h2>Q started a task without the required brief.</h2>
-          <p>The agent stopped, named the missing input, and preserved the task identity instead of inventing context.</p>
-          <div className="failure-change">
-            <span>Learning</span>
-            <strong>Block visibly. Resume in place.</strong>
-          </div>
-          <div className="failure-key">
-            <Wrench size={20} />
-            <span>Thread replies now revise the active task and artifact.</span>
-          </div>
-        </div>
-        <figure className="failure-screenshot">
-          <img src="/slack-q-context-blocker.png" alt="Slack thread showing Q blocking when a required brief is missing and resuming when context is supplied" />
-          <figcaption>Real Slack trace · July 2026</figcaption>
-        </figure>
+      <div className="rough-parts-grid">
+        {roughParts.map((item, index) => (
+          <article key={item.issue}>
+            <span>0{index + 1}</span>
+            <h2>{item.issue}</h2>
+            <p>{item.symptom}</p>
+            <footer><Wrench size={17} /><strong>{item.guardrail}</strong></footer>
+          </article>
+        ))}
+      </div>
+
+      <div className="rough-principle">
+        <TriangleAlert size={18} />
+        <span>Every guardrail exists because a plausible shortcut failed in real work.</span>
       </div>
     </div>
   );
